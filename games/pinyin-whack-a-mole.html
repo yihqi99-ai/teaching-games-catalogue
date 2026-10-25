@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pinyin Whack-a-Mole 拼音打地鼠</title>
+<style>
+:root{--ink:#17324d;--muted:#60768b;--green:#2e8b57;--lime:#c8f169;--cream:#fffaf0;--blue:#dff3ff;--coral:#ff796e;--gold:#ffd66b}
+*{box-sizing:border-box;font-family:Arial,"KaiTi","楷体","STKaiti",serif}
+body{margin:0;font-family:Arial,"KaiTi","楷体","STKaiti",serif;color:var(--ink);background:linear-gradient(180deg,#dff4ff 0%,#f7fbff 42%,#e9f7d9 100%);min-height:100vh}
+button,select,input{font:inherit}
+button{cursor:pointer}
+.app{max-width:1100px;margin:auto;padding:18px}
+.topbar{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:16px}
+.brand{display:flex;align-items:center;gap:12px}.brand-icon{font-size:38px;background:#fff;border-radius:15px;padding:8px;box-shadow:0 5px 0 #d2e6ed}
+h1{font-size:clamp(23px,4vw,34px);margin:0;letter-spacing:-.5px}.subtitle{color:var(--muted);margin-top:4px;font-size:14px}
+.pill{background:#fff;border:1px solid #d7e8ee;border-radius:999px;padding:9px 13px;font-size:13px;font-weight:700}
+.panel{background:rgba(255,255,255,.92);border:1px solid #dcebf0;border-radius:22px;box-shadow:0 10px 25px #2a56700d;padding:18px}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px}
+.stat{background:#fff;border:1px solid #dcebf0;border-radius:17px;padding:12px 14px;min-width:0}
+.stat-label{font-size:12px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.6px}.stat-value{font-size:clamp(22px,3vw,30px);font-weight:900;margin-top:3px;font-variant-numeric:tabular-nums}
+.main-grid{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(250px,.8fr);gap:14px;align-items:stretch}
+.target-row{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.eyebrow{font-size:12px;font-weight:800;color:var(--green);letter-spacing:1px}
+.target-word{font-size:clamp(38px,6vw,62px);font-weight:900;line-height:1.1;margin:5px 0 4px;color:#173b31}
+.target-hint{font-size:14px;color:var(--muted)}
+.target-badge{background:#e9f9d9;border:2px solid #c5e8a7;border-radius:18px;padding:12px 16px;text-align:center;min-width:100px}
+.target-badge .emoji{font-size:33px}.target-badge .label{font-size:12px;color:#47733a;font-weight:800}
+.mole-field{margin-top:18px;padding:18px 12px 12px;border-radius:20px;background:linear-gradient(#bde8ff 0 30%,#a5d77b 30% 100%);position:relative;overflow:hidden;min-height:330px}
+.mole-field:before{content:"☁️　　　　　　　　　☁️";position:absolute;top:10px;left:8%;font-size:22px;opacity:.8;white-space:pre}
+.mole-grid{position:relative;z-index:1;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px 9px;margin-top:44px}
+.hole{position:relative;border:0;background:transparent;min-height:105px;padding:0;touch-action:manipulation;outline-offset:4px}
+.hole:before{content:"";position:absolute;left:8%;right:8%;bottom:0;height:35px;border-radius:50%;background:#60442f;box-shadow:inset 0 6px 0 #4a3426,0 4px 0 #80b55b}
+.mole{position:absolute;bottom:15px;left:50%;transform:translateX(-50%) translateY(10px);width:88%;height:77px;border-radius:48% 48% 35% 35%;background:linear-gradient(145deg,#b77b4c,#87502e);border:3px solid #754226;box-shadow:inset -7px -5px 0 #78482d;display:flex;flex-direction:column;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:transform .13s,opacity .13s}
+.mole:before,.mole:after{content:"";position:absolute;top:-7px;width:24px;height:24px;background:#b77b4c;border:3px solid #754226;border-radius:50%;z-index:-1}.mole:before{left:8px}.mole:after{right:8px}
+.mole .face{font-size:19px;line-height:1;margin-bottom:3px;filter:drop-shadow(0 1px 0 #fff4)}
+.mole .pinyin{font-weight:900;font-size:clamp(13px,2vw,19px);color:#fff;letter-spacing:.1px;text-shadow:0 2px 2px #54351f;white-space:nowrap}
+.hole.up .mole{opacity:1;transform:translateX(-50%) translateY(0);pointer-events:auto}
+.hole.hit .mole{background:linear-gradient(145deg,#8fdc86,#43a55a);border-color:#27773d;transform:translateX(-50%) translateY(-15px) scale(1.08)}
+.hole.hit .mole:before,.hole.hit .mole:after{background:#8fdc86;border-color:#27773d}
+.hole.miss .mole{background:linear-gradient(145deg,#ffb0a5,#e75e54);border-color:#b93b32}
+.feedback{min-height:28px;margin-top:10px;font-size:15px;font-weight:800;text-align:center;color:#356d3e}
+.side-panel{display:flex;flex-direction:column;gap:14px}
+.side-panel h2{font-size:17px;margin:0 0 10px}
+.controls{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+select{width:100%;border:1px solid #cfdee5;background:#fff;border-radius:12px;padding:10px;color:var(--ink);font-weight:700}
+.field-label{font-size:12px;color:var(--muted);font-weight:800;display:block;margin-bottom:5px}
+.btn{border:0;border-radius:13px;padding:12px 15px;font-weight:900;transition:transform .12s,filter .12s}.btn:active{transform:scale(.98)}
+.btn-primary{background:#247b4b;color:#fff;box-shadow:0 4px 0 #175d36}.btn-secondary{background:#e8f3fa;color:#214d6b;border:1px solid #cbdfe9}.btn-gold{background:var(--gold);color:#654d0a;box-shadow:0 4px 0 #e5b83f}
+.btn-row{display:flex;gap:8px;flex-wrap:wrap}.btn-row .btn{flex:1}
+.rule{font-size:13px;line-height:1.6;color:var(--muted);margin:0}
+.mini-row{display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:13px;margin-top:10px}.progress{height:8px;background:#e9f0f2;border-radius:99px;overflow:hidden;margin-top:7px}.progress span{display:block;height:100%;width:0;background:linear-gradient(90deg,#53b96c,#b2dc56);transition:width .2s}
+.status{display:inline-flex;align-items:center;gap:6px;background:#eef8e9;color:#367342;padding:7px 10px;border-radius:999px;font-size:12px;font-weight:800}
+.hidden{display:none!important}
+.overlay{position:fixed;inset:0;background:#17324dcc;display:flex;align-items:center;justify-content:center;padding:18px;z-index:10;overflow:auto}
+.modal{background:#fff;border-radius:24px;max-width:560px;width:100%;padding:25px;box-shadow:0 25px 80px #0e243a55;max-height:92vh;overflow:auto}
+.modal h2{font-size:28px;margin:0 0 8px}.modal p{color:var(--muted);line-height:1.6}
+.result-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:16px 0}.result-cell{background:#f1f8fb;border-radius:14px;padding:12px;text-align:center}.result-cell strong{display:block;font-size:24px}.result-cell span{font-size:12px;color:var(--muted)}
+.review-list{display:flex;flex-wrap:wrap;gap:7px;margin:10px 0 18px}.review-chip{background:#fff0e9;border:1px solid #ffd0bd;border-radius:10px;padding:8px 10px;font-size:13px;font-weight:800}
+.footer{font-size:12px;color:#668092;text-align:center;margin:16px 0 5px}
+.vocab-editor{margin-top:14px}
+.vocab-editor textarea{width:100%;min-height:180px;resize:vertical;border:1px solid #cbdfe9;border-radius:13px;padding:12px;font:15px/1.65 Arial,"KaiTi","楷体","STKaiti",serif;color:var(--ink);background:#fbfdff}
+.editor-help{font-size:13px;line-height:1.6;color:var(--muted);margin:8px 0 12px}
+.editor-status{min-height:22px;font-size:13px;font-weight:800;margin-top:8px;color:#267d43}
+.editor-actions{display:flex;gap:8px;flex-wrap:wrap}.editor-actions .btn{flex:1}
+
+@media(max-width:760px){.main-grid{grid-template-columns:1fr}.stats{grid-template-columns:repeat(2,1fr)}.side-panel{display:grid;grid-template-columns:1fr 1fr}.side-panel .panel:last-child{grid-column:1/-1}.mole-field{min-height:300px}.mole-grid{gap:10px 5px}.hole{min-height:90px}.mole{height:68px}.app{padding:12px}}
+@media(max-width:440px){.side-panel{display:flex}.target-badge{padding:8px 12px}.mole-field{padding:12px 6px;min-height:270px}.mole-grid{margin-top:42px;gap:8px 2px}.hole{min-height:78px}.mole{height:59px;border-width:2px}.mole .pinyin{font-size:12px}.mole .face{font-size:16px}.brand-icon{font-size:29px}.stat{padding:10px}}
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="topbar">
+    <div class="brand"><div class="brand-icon">🔨</div><div><h1>Pinyin Whack-a-Mole <span style="color:#2e8b57">拼音打地鼠</span></h1><div class="subtitle">看汉字 · 找拼音 · 快速点击 · 记住声调</div></div></div>
+    <div class="pill">🎓 Mandarin Revision Arcade</div>
+  </header>
+
+  <section class="stats" aria-label="游戏统计">
+    <div class="stat"><div class="stat-label">SCORE 分数</div><div class="stat-value" id="score">0</div></div>
+    <div class="stat"><div class="stat-label">TIME 剩余时间</div><div class="stat-value" id="time">60<span style="font-size:14px">s</span></div></div>
+    <div class="stat"><div class="stat-label">STREAK 连击</div><div class="stat-value" id="streak">0 🔥</div></div>
+    <div class="stat"><div class="stat-label">ACCURACY 正确率</div><div class="stat-value" id="accuracy">—</div></div>
+  </section>
+
+  <div class="main-grid">
+    <section class="panel">
+      <div class="target-row">
+        <div>
+          <div class="eyebrow" id="roundLabel">READY? 准备好了吗</div>
+          <div class="target-word" id="targetWord">西瓜</div>
+          <div class="target-hint" id="targetHint">找到与这个汉字对应的拼音</div>
+        </div>
+        <div class="target-badge"><div class="emoji" id="targetEmoji">🍉</div><div class="label">本轮目标 TARGET</div></div>
+      </div>
+      <div class="mole-field">
+        <div class="mole-grid" id="moleGrid" aria-label="点击正确拼音地鼠">
+          <button class="hole" data-slot="0" aria-label="地鼠位置1"><span class="mole"><span class="face">🐹</span><span class="pinyin"></span></span></button>
+          <button class="hole" data-slot="1" aria-label="地鼠位置2"><span class="mole"><span class="face">🐹</span><span class="pinyin"></span></span></button>
+          <button class="hole" data-slot="2" aria-label="地鼠位置3"><span class="mole"><span class="face">🐹</span><span class="pinyin"></span></span></button>
+          <button class="hole" data-slot="3" aria-label="地鼠位置4"><span class="mole"><span class="face">🐹</span><span class="pinyin"></span></span></button>
+          <button class="hole" data-slot="4" aria-label="地鼠位置5"><span class="mole"><span class="face">🐹</span><span class="pinyin"></span></span></button>
+          <button class="hole" data-slot="5" aria-label="地鼠位置6"><span class="mole"><span class="face">🐹</span><span class="pinyin"></span></span></button>
+        </div>
+      </div>
+      <div class="feedback" id="feedback" aria-live="polite">点击「开始游戏」，准备找出正确拼音！</div>
+    </section>
+
+    <aside class="side-panel">
+      <section class="panel">
+        <h2>⚙️ 游戏设置</h2>
+        <div class="controls">
+          <div><label class="field-label" for="difficulty">难度 DIFFICULTY</label><select id="difficulty"><option value="easy">Easy 简单</option><option value="medium" selected>Medium 中等</option><option value="hard">Hard 困难</option></select></div>
+          <div><label class="field-label" for="duration">游戏时长</label><select id="duration"><option value="30">30 秒</option><option value="60" selected>60 秒</option><option value="90">90 秒</option></select></div>
+        </div>
+        <div class="mini-row"><span>本局进度</span><strong id="progressText">尚未开始</strong></div>
+        <div class="progress"><span id="progressBar"></span></div>
+        <div class="btn-row" style="margin-top:15px">
+          <button class="btn btn-primary" id="startBtn">▶ 开始游戏</button>
+          <button class="btn btn-secondary" id="soundBtn" aria-pressed="true">🔊 音效开</button>
+        </div>
+        <button class="btn btn-secondary" id="showPinyinBtn" style="width:100%;margin-top:8px">💡 查看目标拼音</button>
+      </section>
+
+      <section class="panel">
+        <h2>🎯 How to Play</h2>
+        <p class="rule">1. Read the Chinese word. <br>2. Tap the mole with the matching pinyin. <br>3. Correct answer: +10 points. <br>4. Mistakes are saved for review. <br>5. Beat the timer!</p>
+        <div class="mini-row"><span>答对 CORRECT</span><strong id="correctCount">0</strong></div>
+        <div class="mini-row"><span>答错 INCORRECT</span><strong id="wrongCount">0</strong></div>
+      </section>
+
+
+    </aside>
+  </div>
+  <section class="panel vocab-editor hidden" id="vocabEditor">
+    <div class="target-row">
+      <div>
+        <div class="eyebrow">TEACHER TOOL</div>
+        <h2 style="font-size:23px;margin:5px 0">✏️ 自定义词汇库</h2>
+        <p class="rule">Enter one vocabulary item per line. Saved vocabulary is kept in this browser.</p>
+      </div>
+      <div class="status">Minimum 4 words</div>
+    </div>
+    <p class="editor-help">
+      Format: <code>汉字,pinyin,emoji</code> (emoji optional). Use commas or a Tab to separate fields. Include tone marks in pinyin.
+    </p>
+    <textarea id="vocabInput" spellcheck="false" aria-label="自定义词汇，每行一个汉字和拼音"></textarea>
+    <div class="editor-actions" style="margin-top:10px">
+      <button class="btn btn-primary" id="applyVocabBtn">Save & Use</button>
+      <button class="btn btn-secondary" id="sampleVocabBtn">Load Sample</button>
+      <button class="btn btn-secondary" id="resetVocabBtn">Reset Default</button>
+    </div>
+    <div class="editor-status" id="editorStatus" aria-live="polite"></div>
+    <p class="rule" style="margin-top:8px">Saved vocabulary is stored locally in this browser and is not synced to other devices.</p>
+  </section>
+  <div class="footer">单文件 HTML · 支持鼠标与触屏 · 不需要登录或联网 · 分数仅保存在本局页面中</div>
+</div>
+
+<div class="overlay" id="welcomeOverlay">
+  <div class="modal">
+    <div style="font-size:42px">🐹🍉</div>
+    <h2>Ready to Play?</h2>
+    <p>Match each Chinese word with the correct pinyin. Choose carefully and beat the timer!</p>
+    <p>Tap the mole showing the matching pinyin. Correct answers earn points; mistakes are saved for review.</p>
+    <button class="btn btn-primary" id="welcomeStart" style="width:100%">Start Game →</button>
+  </div>
+</div>
+
+<div class="overlay hidden" id="resultOverlay">
+  <div class="modal">
+    <div style="font-size:42px" id="resultEmoji">🏆</div>
+    <h2 id="resultTitle">挑战完成！</h2>
+    <p id="resultMessage">做得不错！看看你的表现。</p>
+    <div class="result-grid">
+      <div class="result-cell"><strong id="finalScore">0</strong><span>总分 SCORE</span></div>
+      <div class="result-cell"><strong id="finalAccuracy">0%</strong><span>正确率 ACCURACY</span></div>
+      <div class="result-cell"><strong id="finalCorrect">0</strong><span>答对次数 CORRECT</span></div>
+    </div>
+    <h3 style="margin:12px 0 5px;font-size:16px">📝 需要再复习的词汇</h3>
+    <p style="margin:0;font-size:13px">这里会列出你点击错误过的目标词汇。</p>
+    <div class="review-list" id="reviewList"></div>
+    <div id="noReview" class="status hidden">太好了！本局没有记录到错题。</div>
+    <div class="btn-row" style="margin-top:16px">
+      <button class="btn btn-primary" id="reviewBtn">🔁 练习错题</button>
+      <button class="btn btn-gold" id="againBtn">再玩一局</button>
+    </div>
+    <button class="btn btn-secondary" id="closeResultBtn" style="width:100%;margin-top:8px">返回游戏画面</button>
+  </div>
+</div>
+
+<script>
+(() => {
+  const DEFAULT_VOCAB = [
+    {hanzi:"西瓜",pinyin:"xīguā",emoji:"🍉"},
+    {hanzi:"苹果",pinyin:"píngguǒ",emoji:"🍎"},
+    {hanzi:"香蕉",pinyin:"xiāngjiāo",emoji:"🍌"},
+    {hanzi:"橙子",pinyin:"chéngzi",emoji:"🍊"},
+    {hanzi:"葡萄",pinyin:"pútao",emoji:"🍇"},
+    {hanzi:"草莓",pinyin:"cǎoméi",emoji:"🍓"},
+    {hanzi:"菠萝",pinyin:"bōluó",emoji:"🍍"},
+    {hanzi:"桃子",pinyin:"táozi",emoji:"🍑"},
+    {hanzi:"梨",pinyin:"lí",emoji:"🍐"},
+    {hanzi:"水果",pinyin:"shuǐguǒ",emoji:"🍉"},
+    {hanzi:"牛奶",pinyin:"niúnǎi",emoji:"🥛"},
+    {hanzi:"面包",pinyin:"miànbāo",emoji:"🍞"}
+  ];
+  let VOCAB = [...DEFAULT_VOCAB];
+  const $ = id => document.getElementById(id);
+  const holes = [...document.querySelectorAll(".hole")];
+  let running=false, score=0, correct=0, wrong=0, streak=0, bestStreak=0, seconds=60;
+  let duration=60, timerId=null, spawnId=null, hideIds=[], target=null, soundOn=true;
+  let seenTargets=[], missedTargets=new Set(), lastTarget="", round=0, attempts=0, practiceOnly=false;
+  let audioCtx=null;
+
+  function shuffle(arr){const a=[...arr];for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
+  function chooseTarget(){
+    const pool=practiceOnly ? VOCAB.filter(v=>missedTargets.has(v.hanzi)) : VOCAB;
+    const choices=pool.length?pool:VOCAB;
+    let next=choices[Math.floor(Math.random()*choices.length)];
+    if(choices.length>1 && next.hanzi===lastTarget) next=choices.find(v=>v.hanzi!==lastTarget)||next;
+    lastTarget=next.hanzi; return next;
+  }
+  function beep(kind="good"){
+    if(!soundOn)return;
+    try{
+      audioCtx=audioCtx||new (window.AudioContext||window.webkitAudioContext)();
+      if(audioCtx.state==="suspended")audioCtx.resume();
+      const osc=audioCtx.createOscillator(), gain=audioCtx.createGain();
+      osc.connect(gain);gain.connect(audioCtx.destination);
+      osc.type="sine";
+      osc.frequency.value=kind==="good"?740:kind==="bad"?190:kind==="start"?520:880;
+      gain.gain.setValueAtTime(.0001,audioCtx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(.12,audioCtx.currentTime+.015);
+      gain.gain.exponentialRampToValueAtTime(.0001,audioCtx.currentTime+.16);
+      osc.start();osc.stop(audioCtx.currentTime+.17);
+    }catch(e){}
+  }
+  function updateStats(){
+    $("score").textContent=score;
+    $("time").innerHTML=seconds+'<span style="font-size:14px">s</span>';
+    $("streak").textContent=streak+" 🔥";
+    $("accuracy").textContent=attempts?Math.round(correct/attempts*100)+"%":"—";
+    $("correctCount").textContent=correct;
+    $("wrongCount").textContent=wrong;
+    $("progressText").textContent=running?`${duration-seconds}/${duration} 秒`:"尚未开始";
+    $("progressBar").style.width=Math.min(100,(duration-seconds)/duration*100)+"%";
+  }
+  function clearHoles(){holes.forEach(h=>{h.className="hole";h.dataset.answer="";h.querySelector(".pinyin").textContent="";});hideIds.forEach(clearTimeout);hideIds=[];}
+  function showTarget(){
+    target=chooseTarget();round++;seenTargets.push(target.hanzi);
+    $("targetWord").textContent=target.hanzi;
+    $("targetEmoji").textContent=target.emoji;
+    $("roundLabel").textContent=`ROUND ${String(round).padStart(2,"0")} · FIND THE PINYIN`;
+    $("targetHint").textContent="点击对应的拼音地鼠";
+    $("feedback").textContent="找出正确拼音！";
+    spawnMoles();
+  }
+  function spawnMoles(){
+    if(!running)return;
+    clearHoles();
+    const diff=$("difficulty").value;
+    const desiredN=diff==="easy"?4:6;
+    const n=Math.min(desiredN, VOCAB.length, holes.length);
+    const correctSlot=Math.floor(Math.random()*n);
+    let distractors=shuffle(VOCAB.filter(v=>v.hanzi!==target.hanzi));
+    // 在困难模式优先加入拼音外观相似或同主题的干扰项，仍确保唯一正确答案。
+    if(diff==="hard"){
+      distractors.sort((a,b)=>similarity(b.pinyin,target.pinyin)-similarity(a.pinyin,target.pinyin));
+      distractors=shuffle(distractors.slice(0,Math.min(5,distractors.length)).concat(distractors.slice(5)));
+    }
+    for(let i=0;i<n;i++){
+      const h=holes[i], item=i===correctSlot?target:distractors.shift();
+      h.dataset.answer=item.hanzi;
+      h.querySelector(".pinyin").textContent=item.pinyin;
+      h.querySelector(".face").textContent=i===correctSlot?"🐹":(Math.random()>.5?"🐭":"🐹");
+      h.classList.add("up");
+      const life=diff==="easy"?2600:diff==="medium"?2050:1450;
+      hideIds.push(setTimeout(()=>{if(h.classList.contains("up"))h.classList.remove("up");},life+Math.random()*300));
+    }
+    const life=diff==="easy"?3000:diff==="medium"?2350:1700;
+    spawnId=setTimeout(()=>{if(running){holes.forEach(h=>h.classList.remove("up"));spawnId=setTimeout(spawnMoles,250);}},life);
+  }
+  function similarity(a,b){
+    const aa=a.normalize("NFD").replace(/[\u0300-\u036f]/g,""),bb=b.normalize("NFD").replace(/[\u0300-\u036f]/g,"");
+    let same=0;for(const c of aa)if(bb.includes(c))same++;return same/Math.max(aa.length,bb.length);
+  }
+  function clickHole(e){
+    const h=e.currentTarget;
+    if(!running||!h.classList.contains("up"))return;
+    const answer=h.dataset.answer;
+    attempts++;
+    if(answer===target.hanzi){
+      correct++;streak++;bestStreak=Math.max(bestStreak,streak);
+      const points=10+(streak>0&&streak%3===0?5:0);
+      score+=points;h.classList.add("hit");h.querySelector(".face").textContent="😎";
+      $("feedback").textContent=streak%3===0?`太棒了！连击奖励 +${points} 分！`:`答对了！+${points} 分 · ${target.hanzi} ${target.pinyin}`;
+      $("feedback").style.color="#267d43";beep("good");
+      holes.forEach(x=>x.classList.remove("up"));
+      if(spawnId)clearTimeout(spawnId);hideIds.forEach(clearTimeout);hideIds=[];
+      updateStats();
+      spawnId=setTimeout(()=>{if(running)showTarget();},650);
+    }else{
+      wrong++;streak=0;missedTargets.add(target.hanzi);
+      h.classList.add("miss");h.querySelector(".face").textContent="😵";
+      $("feedback").textContent=`再试试！「${target.hanzi}」的拼音不是 ${VOCAB.find(v=>v.hanzi===answer)?.pinyin||""}`;
+      $("feedback").style.color="#c34b43";beep("bad");updateStats();
+      setTimeout(()=>h.classList.remove("miss"),350);
+    }
+  }
+  holes.forEach(h=>h.addEventListener("click",clickHole));
+  function startGame(practice=false){
+    stopTimers();clearHoles();
+    practiceOnly=practice;
+    if(practiceOnly && missedTargets.size===0){$("feedback").textContent="目前没有错题，可以直接开始完整挑战！";practiceOnly=false;}
+    score=0;correct=0;wrong=0;streak=0;bestStreak=0;attempts=0;round=0;seenTargets=[];lastTarget="";
+    duration=Number($("duration").value);seconds=duration;running=true;
+    $("startBtn").textContent="↻ 重新开始";
+    $("feedback").style.color="#356d3e";
+    $("welcomeOverlay").classList.add("hidden");$("resultOverlay").classList.add("hidden");
+    updateStats();beep("start");showTarget();
+    timerId=setInterval(()=>{if(!running)return;seconds--;updateStats();if(seconds<=0)endGame();},1000);
+  }
+  function stopTimers(){if(timerId)clearInterval(timerId);if(spawnId)clearTimeout(spawnId);hideIds.forEach(clearTimeout);timerId=null;spawnId=null;hideIds=[];}
+  function endGame(){
+    running=false;stopTimers();clearHoles();updateStats();beep("end");
+    const acc=attempts?Math.round(correct/attempts*100):0;
+    $("finalScore").textContent=score;$("finalAccuracy").textContent=acc+"%";$("finalCorrect").textContent=correct;
+    $("resultEmoji").textContent=acc>=85?"🏆":acc>=60?"⭐":"💪";
+    $("resultTitle").textContent=acc>=85?"太棒了！挑战成功！":acc>=60?"做得不错，继续加油！":"再练一次，你会进步！";
+    $("resultMessage").textContent=`你完成了 ${round} 轮目标，最高连击 ${bestStreak} 次。${acc>=85?"你对拼音的辨认很准确！":"再玩一局，试着更快、更准确地找出声调。"}`;
+    const list=$("reviewList");list.innerHTML="";
+    const missed=[...missedTargets].map(w=>VOCAB.find(v=>v.hanzi===w)).filter(Boolean);
+    $("noReview").classList.toggle("hidden",missed.length>0);
+    missed.forEach(v=>{const chip=document.createElement("span");chip.className="review-chip";chip.textContent=`${v.hanzi} · ${v.pinyin}`;list.appendChild(chip);});
+    $("reviewBtn").disabled=missed.length===0;
+    $("reviewBtn").style.opacity=missed.length===0?".5":"1";
+    $("resultOverlay").classList.remove("hidden");
+  }
+  $("startBtn").addEventListener("click",()=>startGame(false));
+  $("welcomeStart").addEventListener("click",()=>startGame(false));
+  $("againBtn").addEventListener("click",()=>startGame(false));
+  $("reviewBtn").addEventListener("click",()=>startGame(true));
+  $("closeResultBtn").addEventListener("click",()=>$("resultOverlay").classList.add("hidden"));
+  $("soundBtn").addEventListener("click",()=>{
+    soundOn=!soundOn;$("soundBtn").textContent=soundOn?"🔊 音效开":"🔇 音效关";
+    $("soundBtn").setAttribute("aria-pressed",String(soundOn));if(soundOn)beep("good");
+  });
+  $("showPinyinBtn").addEventListener("click",()=>{
+    if(!target){$("feedback").textContent="先开始游戏，再查看目标拼音。";return;}
+    $("feedback").textContent=`提示：${target.hanzi} — ${target.pinyin}`;
+    $("feedback").style.color="#245b91";beep("start");
+  });
+  $("difficulty").addEventListener("change",()=>{if(running){if(spawnId)clearTimeout(spawnId);clearHoles();showTarget();}});
+  $("duration").addEventListener("change",()=>{if(!running)seconds=Number($("duration").value);updateStats();});
+
+  function vocabToText(items){return items.map(v=>`${v.hanzi},${v.pinyin},${v.emoji||"⭐"}`).join("\n");}
+  function updateVocabBadge(){
+    const status=document.querySelector(".vocab-editor .status");
+    if(status) status.textContent=`Minimum 4 words · Current: ${VOCAB.length}`;
+  }
+  function parseVocab(text){
+    const lines=text.split(/\r?\n/).map(s=>s.trim()).filter(Boolean);
+    const parsed=[];
+    for(let i=0;i<lines.length;i++){
+      const parts=lines[i].split(/[,，\t]/).map(s=>s.trim());
+      if(parts.length<2 || !parts[0] || !parts[1]){
+        throw new Error(`Line ${i+1}: use the format 汉字,pinyin,emoji.`);
+      }
+      const item={hanzi:parts[0],pinyin:parts[1],emoji:parts[2]||"⭐"};
+      if(/[\s]/.test(item.hanzi)) {
+        // Multi-character phrases may be typed without spaces; spaces in Chinese target are usually accidental.
+        throw new Error(`Line ${i+1}: do not add spaces inside the Chinese word.`);
+      }
+      if(/[\s]/.test(item.pinyin)) {
+        throw new Error(`Line ${i+1}: write pinyin as one word without spaces.`);
+      }
+      if(parsed.some(v=>v.hanzi===item.hanzi)) throw new Error(`Duplicate Chinese word: ${item.hanzi}. Each word must be unique.`);
+      if(parsed.some(v=>v.pinyin===item.pinyin)) throw new Error(`Duplicate pinyin: ${item.pinyin}. Each answer must be unique.`);
+      parsed.push(item);
+    }
+    if(parsed.length<4) throw new Error("Enter at least 4 different vocabulary items.");
+    return parsed;
+  }
+  function applyVocabFromEditor(){
+    try{
+      const next=parseVocab($("vocabInput").value);
+      VOCAB=next;
+      missedTargets.clear();lastTarget="";round=0;
+      try{localStorage.setItem("pinyinWhackAMoleVocabV1",JSON.stringify(VOCAB));}catch(e){}
+      updateVocabBadge();
+      $("editorStatus").style.color="#267d43";
+      $("editorStatus").textContent=`Saved ${VOCAB.length} words. They will be used in the next round.`;
+      if(running){running=false;stopTimers();clearHoles();$("startBtn").textContent="▶ 开始游戏";seconds=Number($("duration").value);updateStats();}
+      $("feedback").textContent="Vocabulary updated. Select Start Game to use it.";
+      $("targetWord").textContent="准备开始";$("targetEmoji").textContent="📚";
+      $("roundLabel").textContent="VOCABULARY UPDATED";
+      $("targetHint").textContent="自定义词汇已载入";
+    }catch(err){
+      $("editorStatus").style.color="#c34b43";
+      $("editorStatus").textContent=err.message;
+    }
+  }
+  $("applyVocabBtn").addEventListener("click",applyVocabFromEditor);
+  $("sampleVocabBtn").addEventListener("click",()=>{
+    $("vocabInput").value=vocabToText(DEFAULT_VOCAB);
+    $("editorStatus").style.color="#245b91";
+    $("editorStatus").textContent="Sample vocabulary loaded. Select Save & Use to activate it.";
+  });
+  $("resetVocabBtn").addEventListener("click",()=>{
+    $("vocabInput").value=vocabToText(DEFAULT_VOCAB);
+    VOCAB=[...DEFAULT_VOCAB];missedTargets.clear();lastTarget="";
+    try{localStorage.removeItem("pinyinWhackAMoleVocabV1");}catch(e){}
+    updateVocabBadge();
+    $("editorStatus").style.color="#267d43";
+    $("editorStatus").textContent="Default vocabulary restored.";
+    if(running){running=false;stopTimers();clearHoles();$("startBtn").textContent="▶ 开始游戏";seconds=Number($("duration").value);updateStats();}
+  });
+
+  // Teacher-only access: press Ctrl+Shift+V to open/close the hidden vocabulary editor.
+  document.addEventListener("keydown",(event)=>{
+    if(event.ctrlKey && event.shiftKey && event.key.toLowerCase()==="v"){
+      event.preventDefault();
+      const editor=$("vocabEditor");
+      editor.classList.toggle("hidden");
+      if(!editor.classList.contains("hidden")) editor.scrollIntoView({behavior:"smooth",block:"start"});
+    } else if(event.key==="Escape") {
+      $("vocabEditor").classList.add("hidden");
+    }
+  });
+
+  // Load the user's last vocabulary set in this browser, if one was saved.
+  $("vocabInput").value=vocabToText(DEFAULT_VOCAB);
+  try{
+    const saved=localStorage.getItem("pinyinWhackAMoleVocabV1");
+    if(saved){
+      const restored=JSON.parse(saved);
+      if(Array.isArray(restored) && restored.length>=4 && restored.every(v=>v.hanzi&&v.pinyin)){
+        VOCAB=restored; $("vocabInput").value=vocabToText(VOCAB);
+        $("editorStatus").textContent=`已载入上次保存的 ${VOCAB.length} 个自定义词汇。`;
+      }
+    }
+  }catch(e){}
+  updateVocabBadge();
+  updateStats();
+})();
+</script>
+</body>
+</html>

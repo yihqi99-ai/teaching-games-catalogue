@@ -1,0 +1,15 @@
+[
+  {
+    "title": "Pinyin Whack-a-Mole",
+    "description": "Match Chinese vocabulary with tone-marked pinyin. Includes a timer, difficulty levels, scoring, sound effects and missed-word review.",
+    "category": "Vocabulary",
+    "level": "Beginner–Intermediate",
+    "language": "Mandarin Chinese",
+    "file": "games/pinyin-whack-a-mole.html",
+    "tags": [
+      "Pinyin",
+      "Vocabulary",
+      "Matching"
+    ]
+  }
+]
